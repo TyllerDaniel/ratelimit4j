@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+      - run: mvn -B -ntp verify
+
+  bench-smoke:
+    name: Benchmarks run
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      # Very short run: proves the JMH harness builds and executes, not a real measurement.
+      - run: mvn -B -ntp -Pbench test-compile exec:exec -Djmh.args="-f 1 -wi 1 -i 1 -w 200ms -r 200ms"
